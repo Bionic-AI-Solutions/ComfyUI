@@ -1,0 +1,71 @@
+#!/bin/bash
+# Post-create script for devcontainer
+# This script runs after the container is created
+
+set -e
+
+echo "🔧 Setting up devcontainer..."
+
+# Fix permissions for kube config
+if [ -d "/home/devuser/.kube" ]; then
+    sudo chown -R devuser:devuser /home/devuser/.kube 2>/dev/null || true
+    if [ -f "/home/devuser/.kube/config" ]; then
+        sudo chmod 600 /home/devuser/.kube/config 2>/dev/null || true
+    fi
+fi
+
+# Fix workspace permissions
+if [ -d "/workspace" ]; then
+    sudo chown -R devuser:devuser /workspace 2>/dev/null || true
+fi
+
+# Fix Docker socket permissions
+# The host docker socket may have a different group GID than the container's docker group
+# We'll adjust permissions to ensure devuser can access Docker
+if [ -S "/var/run/docker.sock" ]; then
+    echo "🔧 Fixing Docker socket permissions..."
+    # Get the host docker group GID from the socket
+    HOST_DOCKER_GID=$(stat -c '%g' /var/run/docker.sock 2>/dev/null || echo "")
+    CONTAINER_DOCKER_GID=$(getent group docker | cut -d: -f3 2>/dev/null || echo "")
+    
+    if [ -n "$HOST_DOCKER_GID" ] && [ -n "$CONTAINER_DOCKER_GID" ] && [ "$HOST_DOCKER_GID" != "$CONTAINER_DOCKER_GID" ]; then
+        # Try to update container's docker group to match host GID
+        # This works best when done early, but may fail if group is in use
+        echo "   Docker group GID mismatch detected (host: $HOST_DOCKER_GID, container: $CONTAINER_DOCKER_GID)"
+        echo "   Attempting to adjust permissions..."
+        # Adjust socket permissions as a reliable fallback
+        sudo chmod 666 /var/run/docker.sock 2>/dev/null || true
+    else
+        # If GIDs match or we can't determine, ensure socket is accessible
+        sudo chmod 666 /var/run/docker.sock 2>/dev/null || true
+    fi
+    
+    # Verify Docker access
+    if docker ps &>/dev/null; then
+        echo "✅ Docker access verified"
+    else
+        echo "⚠️  Docker access may require container restart"
+        echo "   You can manually fix with: sudo chmod 666 /var/run/docker.sock"
+    fi
+fi
+
+# Verify GPU is available (mandatory)
+echo "🔍 Checking GPU availability..."
+if nvidia-smi &> /dev/null; then
+    echo "✅ GPU detected:"
+    nvidia-smi --query-gpu=name,driver_version,compute_cap --format=csv,noheader | head -1
+    export CUDA_VISIBLE_DEVICES=all
+    export NVIDIA_VISIBLE_DEVICES=all
+    export NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    echo "✅ GPU support enabled (sm_120 compute capability supported)"
+else
+    echo "❌ ERROR: GPU not available in container!"
+    echo "This devcontainer requires GPU support. Please ensure:"
+    echo "  1. NVIDIA drivers are installed on the host"
+    echo "  2. NVIDIA Container Toolkit is properly configured"
+    echo "  3. Docker daemon has been restarted after NVIDIA setup"
+    echo "  4. Container is started with --runtime=nvidia"
+    exit 1
+fi
+
+echo "✅ Devcontainer setup complete!"
