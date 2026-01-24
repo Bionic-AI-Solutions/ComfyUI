@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  # ComfyUI with GPU support (requires NVIDIA GPU and nvidia-docker)
+  # Uses golden image: docker4zerocool/ai-template:runtime with CUDA 12.8.0
+  # Pattern matches ai-llm-inference service configuration
+  comfyui-gpu:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: gpu
+    container_name: comfyui-gpu
+    restart: unless-stopped
+    ports:
+      - "${COMFYUI_PORT:-8188}:8188"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - CUDA_DEVICE_ORDER=PCI_BUS_ID
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # Mount models from /mnt/ai-models/comfyui (centralized model storage, read-write for model downloads)
+      - /mnt/ai-models/comfyui/models:/app/ComfyUI/models
+      # Mount input directory for input images
+      - ./ComfyUI/input:/app/ComfyUI/input
+      # Mount output directory for generated images
+      - ./ComfyUI/output:/app/ComfyUI/output
+      # Mount custom nodes directory
+      - ./ComfyUI/custom_nodes:/app/ComfyUI/custom_nodes
+      # Optional: Mount user directory for user-specific data
+      - ./ComfyUI/user:/app/ComfyUI/user
+      # Named volumes for cache and logs (following ai-llm-inference pattern)
+      - comfyui_cache:/app/ComfyUI/cache
+      - comfyui_logs:/app/ComfyUI/logs
+    # Use nvidia runtime directly (same as ai-llm-inference)
+    runtime: nvidia
+    networks:
+      - comfyui-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8188/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ComfyUI with CPU support (no GPU required)
+  comfyui-cpu:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: cpu
+    container_name: comfyui-cpu
+    ports:
+      - "${COMFYUI_PORT:-8188}:8188"
+    volumes:
+      # Mount models from /mnt/ai-models/comfyui (centralized model storage)
+      - /mnt/ai-models/comfyui/models:/app/ComfyUI/models
+      # Mount input directory for input images
+      - ./ComfyUI/input:/app/ComfyUI/input
+      # Mount output directory for generated images
+      - ./ComfyUI/output:/app/ComfyUI/output
+      # Mount custom nodes directory
+      - ./ComfyUI/custom_nodes:/app/ComfyUI/custom_nodes
+      # Optional: Mount user directory for user-specific data
+      - ./ComfyUI/user:/app/ComfyUI/user
+    restart: unless-stopped
+    networks:
+      - comfyui-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8188/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  comfyui_cache:
+  comfyui_logs:
+
+networks:
+  comfyui-network:
+    driver: bridge

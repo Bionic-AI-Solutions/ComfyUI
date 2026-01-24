@@ -7,6 +7,7 @@ services:
       dockerfile: .devcontainer/Dockerfile
     container_name: comfyUI
     runtime: nvidia
+    entrypoint: ["/opt/nvidia/nvidia_entrypoint.sh"]
     privileged: true
     environment:
       - CUDA_VISIBLE_DEVICES=all
@@ -19,6 +20,7 @@ services:
       - ${HOME}/.kube:/home/devuser/.kube:cached
       - ${HOME}/git/comfyUI:/workspace:cached
       - ${HOME}/.cursor/mcp.json:/home/devuser/.cursor/mcp.json:cached
+      - /mnt/ai-models:/mnt/ai-models:cached
     command: sleep infinity
     user: devuser
     working_dir: /workspace
