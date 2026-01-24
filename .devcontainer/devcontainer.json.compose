@@ -3,7 +3,6 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "comfyui",
   "workspaceFolder": "/workspace",
-  "shutdownAction": "stopCompose",
   "customizations": {
     "vscode": {
       "extensions": [
@@ -18,5 +17,6 @@
     }
   },
   "remoteUser": "devuser",
-  "postCreateCommand": "bash /usr/local/bin/post-create.sh || bash .devcontainer/post-create.sh"
+  "postCreateCommand": "bash /usr/local/bin/post-create.sh || bash .devcontainer/post-create.sh",
+  "features": {}
 }

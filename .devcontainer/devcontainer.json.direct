@@ -1,0 +1,44 @@
+{
+  "name": "comfyUI",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "runArgs": [
+    "--name", "comfyUI",
+    "--runtime=nvidia",
+    "--privileged"
+  ],
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
+    "source=${localEnv:HOME}/.kube,target=/home/devuser/.kube,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.cursor/mcp.json,target=/home/devuser/.cursor/mcp.json,type=bind,consistency=cached"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-azuretools.vscode-docker",
+        "ms-kubernetes-tools.vscode-kubernetes-tools"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/opt/conda/envs/wan22/bin/python",
+        "python.terminal.activateEnvironment": true
+      }
+    }
+  },
+  "remoteUser": "devuser",
+  "remoteEnv": {
+    "CUDA_VISIBLE_DEVICES": "all",
+    "NVIDIA_VISIBLE_DEVICES": "all",
+    "NVIDIA_DRIVER_CAPABILITIES": "compute,utility",
+    "KUBECONFIG": "/home/devuser/.kube/config",
+    "DOCKER_HOST": "unix:///var/run/docker.sock"
+  },
+  "postCreateCommand": "bash /usr/local/bin/post-create.sh || bash .devcontainer/post-create.sh",
+  "hostRequirements": {
+    "gpu": "optional"
+  },
+  "features": {}
+}

@@ -2,100 +2,111 @@
 
 ## Current Status
 
-The devcontainer is configured to start **without requiring GPU access** initially. This allows the container to start even if there are NVIDIA Container Toolkit issues.
+✅ **GPU support is now enabled by default** in the devcontainer configuration. The container is configured with `--gpus=all` in `runArgs`.
 
 ## GPU Detection
 
-The container will automatically detect and enable GPU support if available via the `post-create.sh` script.
+The container will automatically detect and enable GPU support via the `post-create.sh` script. If GPU is available, you should see:
+
+```
+✅ GPU detected:
+NVIDIA GeForce RTX 5090, 580.95.05, 12.0
+✅ GPU support enabled (sm_120 compute capability supported)
+   GPU access verified - NVIDIA Container Toolkit is working correctly
+```
 
 ## If GPU is Not Available
 
-If you see "⚠️ GPU not available in container" when the container starts, this is normal and the container will still work for development. GPU support can be enabled later.
+If you see "❌ ERROR: GPU not available in container" when the container starts:
 
-## Enabling GPU Support
-
-### Option 1: Fix NVIDIA Container Runtime (Recommended)
-
-If GPU access isn't working, try these steps:
-
-1. **Restart Docker service** (may require sudo):
+1. **Check host NVIDIA drivers**:
    ```bash
-   sudo systemctl restart docker
+   nvidia-smi
    ```
 
 2. **Verify NVIDIA Container Toolkit**:
    ```bash
    nvidia-container-cli --version
+   docker run --rm --gpus=all ubuntu:22.04 nvidia-smi
    ```
 
-3. **Test GPU access**:
+3. **Restart Docker service** (may require sudo):
    ```bash
-   docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu22.04 nvidia-smi
+   sudo systemctl restart docker
    ```
 
-### Option 2: Enable GPU in Running Container
-
-If the container is already running, you can enable GPU by:
-
-1. **Add GPU to runArgs** in `.devcontainer/devcontainer.json`:
-   ```json
-   "runArgs": [
-     "--gpus=all",
-     "--privileged"
-   ],
+4. **Check NVIDIA Container Runtime config**:
+   ```bash
+   cat /etc/nvidia-container-runtime/config.toml | grep root
    ```
+   The `root` setting should be commented out (use default `/`).
 
-2. **Rebuild and reopen** the container
+## Configuration
 
-### Option 3: Use NVIDIA Runtime Explicitly
+### Current Setup
 
-You can also try using the nvidia runtime explicitly by adding to `devcontainer.json`:
+- **GPU in runArgs**: ✅ Enabled (`--gpus=all`)
+- **GPU detection**: ✅ Automatic via post-create script
+- **GPU environment vars**: ✅ Set automatically if GPU detected
+- **Base image**: `docker4zerocool/ai-template:runtime` (CUDA 12.8.0, sm_120 support)
 
-```json
-"runArgs": [
-  "--runtime=nvidia",
-  "--privileged"
-],
-```
+### Runtime Options
+
+The devcontainer uses `--gpus=all` which is the modern Docker approach. This works with the NVIDIA Container Toolkit when properly configured.
 
 ## Troubleshooting
 
 ### Error: "libnvidia-ml.so.1: cannot open shared object file"
 
-This error indicates the NVIDIA Container Toolkit can't access the NVIDIA driver libraries. Solutions:
+This error indicates the NVIDIA Container Toolkit can't access the NVIDIA driver libraries. 
 
-1. **Check NVIDIA driver**:
-   ```bash
-   nvidia-smi
-   ```
+**Root Cause (Fixed)**: The `/etc/nvidia-container-runtime/config.toml` had `root = "/run/nvidia/driver"` set, but the directory wasn't properly populated.
 
-2. **Verify container toolkit**:
-   ```bash
-   cat /etc/docker/daemon.json | grep nvidia
-   ```
-
-3. **Restart Docker**:
-   ```bash
-   sudo systemctl restart docker
-   ```
-
-4. **Check runtime**:
-   ```bash
-   docker info | grep -i runtime
-   ```
+**Solution**: Comment out the custom root setting:
+```bash
+sudo sed -i 's|^root = "/run/nvidia/driver"|#root = "/run/nvidia/driver"|' /etc/nvidia-container-runtime/config.toml
+sudo systemctl restart docker
+```
 
 ### Container Starts But GPU Not Detected
 
 If the container starts but `nvidia-smi` doesn't work inside:
 
-1. The container started without `--gpus=all` (this is by design for reliability)
-2. GPU workloads will still work if you manually enable GPU access
-3. For development, this is usually fine unless you need GPU during container startup
+1. Verify the container was started with `--gpus=all` (check `devcontainer.json`)
+2. Check host GPU: `nvidia-smi` (on host)
+3. Test GPU access: `docker run --rm --gpus=all ubuntu:22.04 nvidia-smi`
+4. Restart Docker: `sudo systemctl restart docker`
+
+### Verification Commands
+
+Test GPU access from host:
+```bash
+# Test with golden image
+docker run --rm --gpus=all docker4zerocool/ai-template:runtime nvidia-smi
+
+# Test with standard Ubuntu
+docker run --rm --gpus=all ubuntu:22.04 nvidia-smi
+```
+
+Test GPU access from devcontainer:
+```bash
+# Inside the devcontainer
+nvidia-smi
+python3 -c "import torch; print(f'CUDA: {torch.cuda.is_available()}, Devices: {torch.cuda.device_count()}')"
+```
+
+## Recent Fix (Jan 24, 2026)
+
+The NVIDIA Container Toolkit issue was resolved by commenting out the custom `root` setting in `/etc/nvidia-container-runtime/config.toml`. The toolkit now uses the default root (`/`) which correctly locates NVIDIA libraries in `/usr/lib/x86_64-linux-gnu/`.
+
+**What was fixed**:
+- Commented out `root = "/run/nvidia/driver"` in config
+- Restored default behavior (root = `/`)
+- GPU access now works for all containers
 
 ## Current Configuration
 
-- **GPU in runArgs**: ❌ Removed (for reliability)
+- **GPU in runArgs**: ✅ Enabled (`--gpus=all`)
 - **GPU detection**: ✅ Automatic via post-create script
 - **GPU environment vars**: ✅ Set automatically if GPU detected
-
-This configuration prioritizes **container startup reliability** over immediate GPU access. GPU can be enabled once the container is running.
+- **Host NVIDIA Container Toolkit**: ✅ Fixed and working

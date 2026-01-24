@@ -58,17 +58,14 @@ if nvidia-smi &> /dev/null; then
     export NVIDIA_VISIBLE_DEVICES=all
     export NVIDIA_DRIVER_CAPABILITIES=compute,utility
     echo "✅ GPU support enabled (sm_120 compute capability supported)"
-    echo "   GPU access verified - NVIDIA Container Toolkit is working correctly"
 else
-    echo "❌ ERROR: GPU not available in container"
-    echo "   The container was started with --gpus=all, but GPU access failed."
-    echo "   This may indicate:"
-    echo "   1. NVIDIA drivers not installed on host (run: nvidia-smi)"
-    echo "   2. NVIDIA Container Toolkit misconfigured"
-    echo "   3. Docker daemon needs restart (sudo systemctl restart docker)"
-    echo ""
-    echo "   Checking host GPU status..."
-    echo "   Container will continue, but GPU features will not work."
+    echo "⚠️  GPU not available in container (host NVIDIA Container Toolkit may need configuration)"
+    echo "The golden image (docker4zerocool/ai-template:runtime) is pre-configured for NVIDIA."
+    echo "GPU access requires:"
+    echo "  1. NVIDIA drivers installed on the host"
+    echo "  2. NVIDIA Container Toolkit properly configured"
+    echo "  3. Container started with --runtime=nvidia or --gpus=all"
+    echo "Container will continue without GPU access for now."
 fi
 
 echo "✅ Devcontainer setup complete!"
