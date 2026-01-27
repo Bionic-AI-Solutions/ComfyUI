@@ -27,7 +27,7 @@ services:
       - ./ComfyUI/output:/app/ComfyUI/output
       # Mount custom nodes directory
       - ./ComfyUI/custom_nodes:/app/ComfyUI/custom_nodes
-      # Optional: Mount user directory for user-specific data
+      # Mount user directory (includes workflows at user/default/workflows/)
       - ./ComfyUI/user:/app/ComfyUI/user
       # Named volumes for cache and logs (following ai-llm-inference pattern)
       - comfyui_cache:/app/ComfyUI/cache
@@ -61,7 +61,7 @@ services:
       - ./ComfyUI/output:/app/ComfyUI/output
       # Mount custom nodes directory
       - ./ComfyUI/custom_nodes:/app/ComfyUI/custom_nodes
-      # Optional: Mount user directory for user-specific data
+      # Mount user directory (includes workflows at user/default/workflows/)
       - ./ComfyUI/user:/app/ComfyUI/user
     restart: unless-stopped
     networks:
