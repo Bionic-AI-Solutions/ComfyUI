@@ -12,6 +12,9 @@ metadata:
     konghq.com/protocols: "http,https"
     konghq.com/strip-path: "false"
 
+    # Basic Authentication
+    konghq.com/plugins: basic-auth
+
     # Request body size for large file uploads
     konghq.com/client-body-buffer-size: "100m"
 

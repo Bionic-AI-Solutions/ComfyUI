@@ -8,15 +8,18 @@ resources:
   - namespace.yaml
   - configmap.yaml
   - pvc.yaml
+  - pv-local-models.yaml
+  - pvc-local-models.yaml
   - deployment.yaml
   - service.yaml
-  # Uncomment ingress if you want to use it
-  # - ingress.yaml
+  - ingress.yaml
+  - kong-plugin-basic-auth.yaml
+  - kong-consumers.yaml
+  - kong-credentials.yaml
 
 # Common labels applied to all resources
 commonLabels:
   app: comfyui
-  managed-by: kustomize
 
 # Images to customize
 images:

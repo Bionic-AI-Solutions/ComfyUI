@@ -78,11 +78,11 @@ spec:
         # GPU access is provided via nvidia runtime and node selector
         resources:
           requests:
-            memory: "8Gi"
+            memory: "32Gi"
             cpu: "2"
             # nvidia.com/gpu: "1"  # Commented out - not advertised by device plugin
           limits:
-            memory: "16Gi"
+            memory: "64Gi"
             cpu: "4"
             # nvidia.com/gpu: "1"  # Commented out - not advertised by device plugin
 

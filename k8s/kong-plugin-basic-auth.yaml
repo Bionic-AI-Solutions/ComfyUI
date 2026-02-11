@@ -1,0 +1,12 @@
+# KongPlugin - Basic Authentication
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: basic-auth
+  namespace: comfyui
+  labels:
+    app: comfyui
+plugin: basic-auth
+config:
+  hide_credentials: true
+  # Don't show credentials in upstream request

@@ -1,0 +1,26 @@
+# KongConsumers - User definitions
+apiVersion: configuration.konghq.com/v1
+kind: KongConsumer
+metadata:
+  name: ajinkya-awati
+  namespace: comfyui
+  labels:
+    app: comfyui
+  annotations:
+    kubernetes.io/ingress.class: kong
+username: ajinkya.awati@bionicaisolutions.com
+credentials:
+  - basic-auth-ajinkya
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongConsumer
+metadata:
+  name: salil-kadam
+  namespace: comfyui
+  labels:
+    app: comfyui
+  annotations:
+    kubernetes.io/ingress.class: kong
+username: salil.kadam@bionicaisolutions.com
+credentials:
+  - basic-auth-salil
