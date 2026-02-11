@@ -1,0 +1,27 @@
+# Local PersistentVolume for ComfyUI models using bcache SSD on GPU node
+# This provides much faster model loading compared to NFS
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: comfyui-models-local-pv
+  labels:
+    app: comfyui
+    type: local-ssd
+spec:
+  capacity:
+    storage: 500Gi  # Adjust based on available space on /mnt/ai-models
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain  # Keep data when PVC is deleted
+  storageClassName: local-storage
+  local:
+    path: /mnt/ai-models/comfyui/models
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - gpu  # GPU node hostname

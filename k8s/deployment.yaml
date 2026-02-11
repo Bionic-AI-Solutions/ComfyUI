@@ -1,0 +1,159 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: comfyui
+  namespace: comfyui
+  labels:
+    app: comfyui
+    version: v1
+spec:
+  replicas: 1  # Single replica recommended for GPU workloads
+  strategy:
+    type: Recreate  # Recreate strategy for PVC mounts and GPU resources
+  selector:
+    matchLabels:
+      app: comfyui
+  template:
+    metadata:
+      labels:
+        app: comfyui
+        version: v1
+    spec:
+      # Node selector to schedule on GPU nodes
+      nodeSelector:
+        nvidia.com/gpu.present: "true"  # GPU node label for this cluster
+        # Alternative labels you might use:
+        # accelerator: nvidia-tesla-v100
+        # cloud.google.com/gke-accelerator: nvidia-tesla-v100
+        # node.kubernetes.io/instance-type: p3.2xlarge
+
+      # Node affinity - ensures pod ONLY schedules on GPU nodes
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: nvidia.com/gpu.present
+                operator: In
+                values:
+                - "true"
+          # Preferred affinity for specific GPU types (optional)
+          # preferredDuringSchedulingIgnoredDuringExecution:
+          # - weight: 100
+          #   preference:
+          #     matchExpressions:
+          #     - key: nvidia.com/gpu.product
+          #       operator: In
+          #       values:
+          #       - Tesla-V100-SXM2-16GB
+          #       - Tesla-T4
+
+      # Tolerations for GPU nodes (if your GPU nodes are tainted)
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+
+      # Runtime class for NVIDIA GPU support
+      runtimeClassName: nvidia
+
+      containers:
+      - name: comfyui
+        # Using docker4zerocool registry
+        image: docker4zerocool/comfyui-k8s:latest
+        imagePullPolicy: Always
+
+        ports:
+        - name: http
+          containerPort: 8188
+          protocol: TCP
+
+        # Environment variables from ConfigMap
+        envFrom:
+        - configMapRef:
+            name: comfyui-config
+
+        # Resource requests and limits
+        # Note: GPU resources not requested explicitly since node doesn't advertise them
+        # GPU access is provided via nvidia runtime and node selector
+        resources:
+          requests:
+            memory: "8Gi"
+            cpu: "2"
+            # nvidia.com/gpu: "1"  # Commented out - not advertised by device plugin
+          limits:
+            memory: "16Gi"
+            cpu: "4"
+            # nvidia.com/gpu: "1"  # Commented out - not advertised by device plugin
+
+        # Volume mounts
+        volumeMounts:
+        - name: models
+          mountPath: /app/ComfyUI/models
+        - name: input
+          mountPath: /app/ComfyUI/input
+        - name: output
+          mountPath: /app/ComfyUI/output
+        - name: custom-nodes
+          mountPath: /app/ComfyUI/custom_nodes
+        - name: user-data
+          mountPath: /app/ComfyUI/user
+        - name: cache
+          mountPath: /app/ComfyUI/cache
+        - name: logs
+          mountPath: /app/ComfyUI/logs
+
+        # Liveness probe - checks if container is running
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8188
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+
+        # Readiness probe - checks if container is ready to serve traffic
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8188
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        # Startup probe - allows for longer startup time
+        startupProbe:
+          httpGet:
+            path: /
+            port: 8188
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30  # 5 minutes total (10s * 30)
+
+      # Volumes
+      volumes:
+      - name: models
+        persistentVolumeClaim:
+          claimName: comfyui-models-local-pvc  # Using local SSD for faster performance
+      - name: input
+        persistentVolumeClaim:
+          claimName: comfyui-input-pvc
+      - name: output
+        persistentVolumeClaim:
+          claimName: comfyui-output-pvc
+      - name: custom-nodes
+        persistentVolumeClaim:
+          claimName: comfyui-custom-nodes-pvc
+      - name: user-data
+        persistentVolumeClaim:
+          claimName: comfyui-user-pvc
+      - name: cache
+        emptyDir: {}
+      - name: logs
+        emptyDir: {}
+
+      # Restart policy
+      restartPolicy: Always

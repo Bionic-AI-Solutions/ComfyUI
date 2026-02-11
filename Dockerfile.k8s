@@ -1,0 +1,105 @@
+# Production Dockerfile for ComfyUI Kubernetes Deployment
+# Based on golden AI template: docker4zerocool/ai-template:runtime
+# Optimized for Kubernetes with proper GPU support
+
+FROM docker4zerocool/ai-template:runtime
+
+# Metadata labels for Kubernetes
+LABEL maintainer="ComfyUI Kubernetes Deployment"
+LABEL app="comfyui"
+LABEL version="1.0"
+LABEL gpu.enabled="true"
+LABEL cuda.version="12.8.0"
+
+# Set environment variables for production
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    CUDA_DEVICE_ORDER=PCI_BUS_ID \
+    NVIDIA_VISIBLE_DEVICES=all \
+    NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+# Switch to root for installations
+USER root
+
+# Install system dependencies and cleanup in single layer
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    curl \
+    wget \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements first for better Docker layer caching
+COPY ComfyUI/requirements.txt /app/requirements.txt
+COPY ComfyUI/manager_requirements.txt /app/manager_requirements.txt
+
+# Install Python dependencies using conda environment
+# The golden image has conda with wan22 environment and PyTorch 2.9.0+cu128 pre-installed
+RUN /opt/conda/envs/wan22/bin/pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    /opt/conda/envs/wan22/bin/pip install --no-cache-dir -r /app/requirements.txt && \
+    /opt/conda/envs/wan22/bin/pip install --no-cache-dir -r /app/manager_requirements.txt
+
+# Verify PyTorch CUDA support is compiled in
+RUN /opt/conda/envs/wan22/bin/python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA compiled: {torch.version.cuda}')" || true
+
+# Copy ComfyUI application
+COPY ComfyUI/ /app/ComfyUI/
+
+# Set working directory to ComfyUI
+WORKDIR /app/ComfyUI
+
+# Create necessary directories with proper permissions
+RUN mkdir -p \
+    models/checkpoints \
+    models/vae \
+    models/loras \
+    models/embeddings \
+    models/clip \
+    models/controlnet \
+    models/upscale_models \
+    models/vae_approx \
+    input \
+    output \
+    custom_nodes \
+    cache \
+    logs \
+    user/default/workflows && \
+    chmod -R 755 /app/ComfyUI
+
+# Create non-root user for security (optional, comment out if issues arise)
+# RUN groupadd -r comfyui && useradd -r -g comfyui -u 1000 comfyui && \
+#     chown -R comfyui:comfyui /app
+# USER comfyui
+
+# Expose port
+EXPOSE 8188
+
+# Health check for Kubernetes liveness/readiness probes
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8188/ || exit 1
+
+# Keep nvidia entrypoint for proper CUDA initialization
+ENTRYPOINT ["/opt/nvidia/nvidia_entrypoint.sh"]
+
+# Run ComfyUI with production settings
+# --listen 0.0.0.0: Listen on all interfaces for Kubernetes service
+# --port 8188: Default ComfyUI port
+# --preview-method auto: Auto-detect preview method
+CMD ["/opt/conda/envs/wan22/bin/python", "main.py", \
+     "--listen", "0.0.0.0", \
+     "--port", "8188", \
+     "--preview-method", "auto", \
+     "--enable-cors-header", \
+     "--enable-manager"]

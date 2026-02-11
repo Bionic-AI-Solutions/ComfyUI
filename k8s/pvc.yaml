@@ -1,0 +1,90 @@
+---
+# PersistentVolumeClaim for ComfyUI Models
+# This will store all AI models (checkpoints, VAEs, LoRAs, etc.)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: comfyui-models-pvc
+  namespace: comfyui
+  labels:
+    app: comfyui
+    component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi  # Adjust based on your model storage needs
+  storageClassName: nfs-client  # Using nfs-client storage class
+
+---
+# PersistentVolumeClaim for ComfyUI Input Files
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: comfyui-input-pvc
+  namespace: comfyui
+  labels:
+    app: comfyui
+    component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi  # Adjust based on your input storage needs
+  storageClassName: nfs-client
+
+---
+# PersistentVolumeClaim for ComfyUI Output Files
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: comfyui-output-pvc
+  namespace: comfyui
+  labels:
+    app: comfyui
+    component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi  # Adjust based on your output storage needs
+  storageClassName: nfs-client
+
+---
+# PersistentVolumeClaim for ComfyUI Custom Nodes
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: comfyui-custom-nodes-pvc
+  namespace: comfyui
+  labels:
+    app: comfyui
+    component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi  # Adjust based on your custom nodes storage needs
+  storageClassName: nfs-client
+
+---
+# PersistentVolumeClaim for ComfyUI User Data and Workflows
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: comfyui-user-pvc
+  namespace: comfyui
+  labels:
+    app: comfyui
+    component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: nfs-client

@@ -1,0 +1,65 @@
+---
+# ClusterIP Service - For internal cluster access
+apiVersion: v1
+kind: Service
+metadata:
+  name: comfyui
+  namespace: comfyui
+  labels:
+    app: comfyui
+spec:
+  type: ClusterIP
+  selector:
+    app: comfyui
+  ports:
+  - name: http
+    port: 8188
+    targetPort: 8188
+    protocol: TCP
+  sessionAffinity: ClientIP  # Maintain session affinity for WebSocket connections
+
+---
+# LoadBalancer Service - For external access
+# Uncomment this if you need external access via LoadBalancer
+# Note: This will create a cloud load balancer (may incur costs)
+apiVersion: v1
+kind: Service
+metadata:
+  name: comfyui-external
+  namespace: comfyui
+  labels:
+    app: comfyui
+spec:
+  type: LoadBalancer
+  selector:
+    app: comfyui
+  ports:
+  - name: http
+    port: 8188
+    targetPort: 8188
+    protocol: TCP
+  sessionAffinity: ClientIP  # Maintain session affinity for WebSocket connections
+  # Optional: Specify load balancer IP if you have a reserved one
+  # loadBalancerIP: "YOUR_RESERVED_IP"
+
+---
+# NodePort Service - Alternative for external access without LoadBalancer
+# Uncomment this if you prefer NodePort over LoadBalancer
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: comfyui-nodeport
+#   namespace: comfyui
+#   labels:
+#     app: comfyui
+# spec:
+#   type: NodePort
+#   selector:
+#     app: comfyui
+#   ports:
+#   - name: http
+#     port: 8188
+#     targetPort: 8188
+#     nodePort: 30188  # Choose a port between 30000-32767
+#     protocol: TCP
+#   sessionAffinity: ClientIP

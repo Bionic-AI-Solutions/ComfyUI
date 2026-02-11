@@ -1,0 +1,22 @@
+# PersistentVolumeClaim for ComfyUI Models using local SSD storage
+# This replaces the NFS-based models PVC for better performance
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: comfyui-models-local-pvc
+  namespace: comfyui
+  labels:
+    app: comfyui
+    component: storage
+    storage-type: local-ssd
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-storage
+  resources:
+    requests:
+      storage: 500Gi  # Match PV capacity
+  selector:
+    matchLabels:
+      app: comfyui
+      type: local-ssd

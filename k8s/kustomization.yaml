@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: comfyui
+
+# Resources to deploy
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+  # Uncomment ingress if you want to use it
+  # - ingress.yaml
+
+# Common labels applied to all resources
+commonLabels:
+  app: comfyui
+  managed-by: kustomize
+
+# Images to customize
+images:
+  - name: comfyui-k8s
+    newName: docker4zerocool/comfyui-k8s
+    newTag: latest
+
+# ConfigMap generator (optional - can be used instead of configmap.yaml)
+# configMapGenerator:
+# - name: comfyui-config
+#   literals:
+#   - PYTHONUNBUFFERED=1
+#   - CUDA_DEVICE_ORDER=PCI_BUS_ID
+#   - NVIDIA_VISIBLE_DEVICES=all
+
+# Replicas (can override deployment replicas)
+# replicas:
+# - name: comfyui
+#   count: 1

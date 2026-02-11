@@ -1,0 +1,50 @@
+# Ingress - Kong configuration for HTTP/HTTPS routing
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: comfyui-kong-ingress
+  namespace: comfyui
+  labels:
+    app: comfyui
+  annotations:
+    # Kong Ingress Controller annotations
+    konghq.com/preserve-host: "true"
+    konghq.com/protocols: "http,https"
+    konghq.com/strip-path: "false"
+
+    # Request body size for large file uploads
+    konghq.com/client-body-buffer-size: "100m"
+
+    # Timeouts for long-running generation tasks
+    konghq.com/connect-timeout: "60000"
+    konghq.com/read-timeout: "3600000"  # 1 hour
+    konghq.com/write-timeout: "3600000"  # 1 hour
+    konghq.com/send-timeout: "3600000"   # 1 hour
+
+    # WebSocket support
+    konghq.com/websocket-support: "true"
+
+    # SSL/TLS configuration (using cert-manager)
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    konghq.com/ssl-redirect: "true"
+
+spec:
+  ingressClassName: kong
+
+  # TLS configuration
+  tls:
+  - hosts:
+    - comfy.baisoln.com
+    secretName: comfy-baisoln-com-tls
+
+  rules:
+  - host: comfy.baisoln.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: comfyui
+            port:
+              number: 8188
