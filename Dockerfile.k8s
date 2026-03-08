@@ -102,4 +102,5 @@ CMD ["/opt/conda/envs/wan22/bin/python", "main.py", \
      "--port", "8188", \
      "--preview-method", "auto", \
      "--enable-cors-header", \
-     "--enable-manager"]
+     "--enable-manager", \
+     "--front-end-version", "Comfy-Org/ComfyUI_frontend@latest"]
